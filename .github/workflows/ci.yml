@@ -1,0 +1,53 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-test:
+    name: ${{ matrix.os }} / ${{ matrix.compiler }} / ${{ matrix.sanitize }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            compiler: gcc
+            sanitize: address,undefined
+          - os: ubuntu-latest
+            compiler: clang
+            sanitize: address,undefined
+          - os: ubuntu-latest
+            compiler: clang
+            sanitize: thread
+          - os: macos-latest
+            compiler: clang
+            sanitize: address,undefined
+    env:
+      CC: ${{ matrix.compiler }}
+      CXX: ${{ matrix.compiler }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: hendrikmuhs/ccache-action@v1
+      - name: Configure
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Debug -DR8N112_SANITIZE=${{ matrix.sanitize }}
+      - name: Build
+        run: cmake --build build --parallel
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
+
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - run: sudo apt-get update && sudo apt-get install -y clang-format
+      - name: clang-format check
+        run: |
+          find src include tests examples -type f \( -name '*.cpp' -o -name '*.hpp' \) \
+            -print0 | xargs -0 clang-format --dry-run --Werror

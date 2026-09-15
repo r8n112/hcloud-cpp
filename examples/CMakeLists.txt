@@ -1,0 +1,5 @@
+add_executable(client_example example.cpp)
+target_link_libraries(client_example PRIVATE hcloud::hcloud_cpp)
+
+r8n112_enable_warnings(client_example)
+r8n112_enable_sanitizers(client_example)
