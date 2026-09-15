@@ -22,39 +22,48 @@ jobs:
             cc: gcc
             cxx: g++
             sanitize: address,undefined
+            cxxflags: ""
+            packages: ""
           - os: ubuntu-latest
             compiler: clang
             cc: clang
             cxx: clang++
             sanitize: address,undefined
+            cxxflags: "-stdlib=libc++"
+            packages: "libc++-dev libc++abi-dev"
           - os: ubuntu-latest
             compiler: clang
             cc: clang
             cxx: clang++
             sanitize: thread
+            cxxflags: "-stdlib=libc++"
+            packages: "libc++-dev libc++abi-dev"
           - os: macos-latest
             compiler: clang
             cc: clang
             cxx: clang++
             sanitize: address,undefined
+            cxxflags: "-stdlib=libc++"
+            packages: ""
     env:
-      # Use the C++ driver (g++/clang++) so the C++ runtime is linked; using the
-      # C driver (gcc/clang) as CXX fails to link libstdc++/libc++.
+      # Use the C++ driver (g++/clang++) so the C++ runtime is linked.
       CC: ${{ matrix.cc }}
       CXX: ${{ matrix.cxx }}
+      # On Linux, Clang's -std=c++23 reports __cplusplus below the libstdc++ gate
+      # for <expected>, so use libc++ there. (GCC and AppleClang are unaffected.)
+      CXXFLAGS: ${{ matrix.cxxflags }}
     steps:
       - uses: actions/checkout@v7
-      - uses: hendrikmuhs/ccache-action@v1
-      - name: Toolchain info
+      - name: Install toolchain packages
+        if: matrix.packages != ''
         run: |
-          $CXX --version | head -1
-          printf '#include <expected>\nint main(){ std::expected<int,int> e=1; return *e; }\n' > /tmp/probe.cpp
-          $CXX -std=c++23 /tmp/probe.cpp -o /tmp/probe && echo "std::expected probe: OK" || echo "std::expected probe: FAIL"
-          echo | $CXX -std=c++23 -v -E -x c++ - 2>&1 | grep -E "Selected GCC|/include/c\\+\\+" || true
+          sudo apt-get update
+          sudo apt-get install -y ${{ matrix.packages }}
+      - uses: hendrikmuhs/ccache-action@v1
       - name: Configure
         run: cmake -B build -DCMAKE_BUILD_TYPE=Debug -DR8N112_SANITIZE=${{ matrix.sanitize }}
       - name: Build
-        run: cmake --build build --parallel --verbose
+        run: cmake --build build --parallel
       - name: Test
         run: ctest --test-dir build --output-on-failure
 
