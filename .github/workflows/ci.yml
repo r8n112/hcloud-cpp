@@ -19,19 +19,29 @@ jobs:
         include:
           - os: ubuntu-latest
             compiler: gcc
+            cc: gcc
+            cxx: g++
             sanitize: address,undefined
           - os: ubuntu-latest
             compiler: clang
+            cc: clang
+            cxx: clang++
             sanitize: address,undefined
           - os: ubuntu-latest
             compiler: clang
+            cc: clang
+            cxx: clang++
             sanitize: thread
           - os: macos-latest
             compiler: clang
+            cc: clang
+            cxx: clang++
             sanitize: address,undefined
     env:
-      CC: ${{ matrix.compiler }}
-      CXX: ${{ matrix.compiler }}
+      # Use the C++ driver (g++/clang++) so the C++ runtime is linked; using the
+      # C driver (gcc/clang) as CXX fails to link libstdc++/libc++.
+      CC: ${{ matrix.cc }}
+      CXX: ${{ matrix.cxx }}
     steps:
       - uses: actions/checkout@v7
       - uses: hendrikmuhs/ccache-action@v1

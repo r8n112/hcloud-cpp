@@ -1,6 +1,8 @@
 BasedOnStyle: Google
 Language: Cpp
-Standard: c++23
+# Keep this at c++20: older clang-format versions (for example the one shipped
+# by Ubuntu CI) reject "c++23" as an unknown value. The build itself is C++23.
+Standard: c++20
 ColumnLimit: 100
 IndentWidth: 4
 TabWidth: 4
