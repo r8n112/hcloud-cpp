@@ -45,10 +45,16 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: hendrikmuhs/ccache-action@v1
+      - name: Toolchain info
+        run: |
+          $CXX --version | head -1
+          printf '#include <expected>\nint main(){ std::expected<int,int> e=1; return *e; }\n' > /tmp/probe.cpp
+          $CXX -std=c++23 /tmp/probe.cpp -o /tmp/probe && echo "std::expected probe: OK" || echo "std::expected probe: FAIL"
+          echo | $CXX -std=c++23 -v -E -x c++ - 2>&1 | grep -E "Selected GCC|/include/c\\+\\+" || true
       - name: Configure
         run: cmake -B build -DCMAKE_BUILD_TYPE=Debug -DR8N112_SANITIZE=${{ matrix.sanitize }}
       - name: Build
-        run: cmake --build build --parallel
+        run: cmake --build build --parallel --verbose
       - name: Test
         run: ctest --test-dir build --output-on-failure
 
